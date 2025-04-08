@@ -18,27 +18,24 @@ EPOCHS = 150
 BATCH_SIZE = 128
 DROPOUT_RATE = 0.3
 LEARNING_RATE = 0.01
-DATA_DIR = 'preprocessed_data'  # Folder containing preprocessed numpy arrays
+DATA_DIR = 'preprocessed_data'  # Folder containing X_train.npy, y_train.npy, X_test.npy, y_test.npy
 
 # -------------------------------
-# Load Preprocessed Data
+# Load Preprocessed Data (Training & Test Sets Only)
 # -------------------------------
 def load_data(data_dir):
     X_train = np.load(os.path.join(data_dir, 'X_train.npy'))
     y_train = np.load(os.path.join(data_dir, 'y_train.npy'))
-    X_val = np.load(os.path.join(data_dir, 'X_val.npy'))
-    y_val = np.load(os.path.join(data_dir, 'y_val.npy'))
     X_test = np.load(os.path.join(data_dir, 'X_test.npy'))
     y_test = np.load(os.path.join(data_dir, 'y_test.npy'))
-    return X_train, y_train, X_val, y_val, X_test, y_test
+    return X_train, y_train, X_test, y_test
 
-X_train, y_train, X_val, y_val, X_test, y_test = load_data(DATA_DIR)
+X_train, y_train, X_test, y_test = load_data(DATA_DIR)
 print("Training set:", X_train.shape, y_train.shape)
-print("Validation set:", X_val.shape, y_val.shape)
 print("Test set:", X_test.shape, y_test.shape)
 
 # -------------------------------
-# Build Model (Same Architecture as FER2013 baseline)
+# Build Model (Same Architecture as FER2013 Baseline)
 # -------------------------------
 model = Sequential([
     Input(shape=(IMG_SIZE, IMG_SIZE, 1)),
@@ -71,38 +68,35 @@ model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy
 # -------------------------------
 # Set Up Callbacks
 # -------------------------------
-checkpoint = ModelCheckpoint("AffectNet_model_best.h5", monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
-rlrop = ReduceLROnPlateau(monitor='val_accuracy', mode='max', factor=0.5, patience=10, min_lr=0.00001, verbose=1)
+checkpoint = ModelCheckpoint("AffectNet_model_best.h5", monitor='loss', verbose=1, save_best_only=True, mode='min')
+rlrop = ReduceLROnPlateau(monitor='loss', mode='min', factor=0.5, patience=10, min_lr=0.00001, verbose=1)
 callbacks_list = [checkpoint, rlrop]
 
 # -------------------------------
-# Train the Model
+# Train the Model (No Validation Set)
 # -------------------------------
 history = model.fit(X_train, y_train,
-                    validation_data=(X_val, y_val),
                     batch_size=BATCH_SIZE,
                     epochs=EPOCHS,
                     callbacks=callbacks_list,
                     shuffle=True)
 
 # -------------------------------
-# Evaluate the Model
+# Evaluate the Model on Test Set
 # -------------------------------
-val_loss, val_acc = model.evaluate(X_val, y_val, verbose=1)
 test_loss, test_acc = model.evaluate(X_test, y_test, verbose=1)
-print("Validation loss, accuracy:", val_loss, val_acc)
-print("Test loss, accuracy:", test_loss, test_acc)
+print("Test loss:", test_loss, "Test accuracy:", test_acc)
 
 # -------------------------------
-# Plot Confusion Matrix on Validation Set
+# Plot Confusion Matrix on Test Set
 # -------------------------------
-y_val_pred = model.predict(X_val)
-y_val_pred_classes = np.argmax(y_val_pred, axis=1)
-y_val_true = np.argmax(y_val, axis=1)
-cm = confusion_matrix(y_val_true, y_val_pred_classes, normalize='true')
+y_test_pred = model.predict(X_test)
+y_test_pred_classes = np.argmax(y_test_pred, axis=1)
+y_test_true = np.argmax(y_test, axis=1)
+cm = confusion_matrix(y_test_true, y_test_pred_classes, normalize='true')
 plt.figure(figsize=(6,6))
 sns.heatmap(cm, annot=True, fmt=".2f", cmap='Blues')
-plt.title("Validation Confusion Matrix")
+plt.title("Test Set Confusion Matrix")
 plt.xlabel("Predicted Label")
 plt.ylabel("True Label")
 plt.show()

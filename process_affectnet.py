@@ -18,7 +18,10 @@ MARGIN = 0.15           # Use 15% margin to mimic official boundary expansion
 # -------------------------------
 # Utility: Crop Face Using Landmarks
 # -------------------------------
-def crop_face_with_landmarks(img, landmarks, margin=0.15):
+def crop_face_with_landmarks(img, landmarks, margin=MARGIN):
+    """
+    Compute the bounding box from landmarks, expand it by a margin, and crop the image.
+    """
     landmarks = np.array(landmarks)
     x_min, y_min = np.min(landmarks, axis=0)
     x_max, y_max = np.max(landmarks, axis=0)
@@ -26,13 +29,10 @@ def crop_face_with_landmarks(img, landmarks, margin=0.15):
     h = y_max - y_min
     x_margin = int(w * margin)
     y_margin = int(h * margin)
-
-    # Make sure x_min..y_max are integers
     x1 = int(max(0, x_min - x_margin))
     y1 = int(max(0, y_min - y_margin))
     x2 = int(min(img.shape[1], x_max + x_margin))
     y2 = int(min(img.shape[0], y_max + y_margin))
-
     return img[y1:y2, x1:x2]
 
 # -------------------------------
@@ -97,28 +97,24 @@ def load_and_preprocess_data(csv_path, img_size=IMG_SIZE, num_classes=NUM_CLASSE
     return X, y
 
 # -------------------------------
-# Split and Save Data
+# Split and Save Data (Training & Test only)
 # -------------------------------
 def split_and_save_data(X, y, output_dir='preprocessed_data'):
     """
-    Splits data into training (60%), validation (20%), and test (20%) sets,
+    Splits data into training (80%) and test (20%) sets,
     then saves the arrays to the specified directory.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, stratify=y, random_state=42)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, stratify=y_temp, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
     
     np.save(os.path.join(output_dir, 'X_train.npy'), X_train)
     np.save(os.path.join(output_dir, 'y_train.npy'), y_train)
-    np.save(os.path.join(output_dir, 'X_val.npy'), X_val)
-    np.save(os.path.join(output_dir, 'y_val.npy'), y_val)
     np.save(os.path.join(output_dir, 'X_test.npy'), X_test)
     np.save(os.path.join(output_dir, 'y_test.npy'), y_test)
     
     print("Data saved to directory:", output_dir)
     print("Training samples:", X_train.shape[0])
-    print("Validation samples:", X_val.shape[0])
     print("Test samples:", X_test.shape[0])
 
 # -------------------------------
