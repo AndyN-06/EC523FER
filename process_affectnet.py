@@ -97,24 +97,35 @@ def load_and_preprocess_data(csv_path, img_size=IMG_SIZE, num_classes=NUM_CLASSE
     return X, y
 
 # -------------------------------
-# Split and Save Data (Training & Test only)
+# Split and Save Data (Training, Validation, & Test)
 # -------------------------------
 def split_and_save_data(X, y, output_dir='preprocessed_data'):
     """
-    Splits data into training (80%) and test (20%) sets,
+    Splits data into training (≈70%), validation (≈15%), and test (15%) sets,
     then saves the arrays to the specified directory.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+    
+    # First, split off the test set (15% of the total data)
+    X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.15, stratify=y, random_state=42)
+    
+    # Next, split the remaining data into training and validation.
+    # From the remaining 85%, 15/85 ≈ 0.1765 will be for validation.
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_temp, y_temp, test_size=0.1765, stratify=y_temp, random_state=42
+    )
     
     np.save(os.path.join(output_dir, 'X_train.npy'), X_train)
     np.save(os.path.join(output_dir, 'y_train.npy'), y_train)
+    np.save(os.path.join(output_dir, 'X_val.npy'), X_val)
+    np.save(os.path.join(output_dir, 'y_val.npy'), y_val)
     np.save(os.path.join(output_dir, 'X_test.npy'), X_test)
     np.save(os.path.join(output_dir, 'y_test.npy'), y_test)
     
     print("Data saved to directory:", output_dir)
     print("Training samples:", X_train.shape[0])
+    print("Validation samples:", X_val.shape[0])
     print("Test samples:", X_test.shape[0])
 
 # -------------------------------
